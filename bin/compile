@@ -29,6 +29,23 @@ env_dir="$3"
 export BOOT_LOCAL_REPO="$cache/.m2/repository"
 export BOOT_JVM_OPTIONS="-Xmx384m -Xss512k"
 
+#s
+# Load common JVM functionality from https://github.com/heroku/heroku-buildpack-jvm-common
+JVM_COMMON_BUILDPACK="https://codon-buildpacks.s3.amazonaws.com/buildpacks/heroku/jvm-common.tgz"
+mkdir -p /tmp/jvm-common
+curl --silent --location $JVM_COMMON_BUILDPACK | tar xzm -C /tmp/jvm-common --strip-components=1
+. /tmp/jvm-common/bin/util
+. /tmp/jvm-common/bin/java
+
+# Install JDK
+javaVersion=$(detect_java_version ${build})
+echo -n "-----> Installing OpenJDK ${javaVersion}..."
+install_java ${build} ${javaVersion}
+jdk_overlay ${build}
+echo "done"
+#e
+
+
 if [[ -f "$cache/boot" ]]
 then
     echo "-----> Using cached version of boot"
