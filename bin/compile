@@ -23,13 +23,14 @@ then
 else	
     echo -n "-----> Downloading boot... "	
     curl -sLo "$cache/boot.sh" https://github.com/boot-clj/boot/releases/download/2.0.0/boot.sh	
-    chmod +x "$cache/boot.sh"	
+    chmod +x "$cache/boot.sh"
+    mv "$cache/boot.sh" "$cache/boot"	
     echo " done"	
 fi
 
 echo -n "-----> Copying boot..."
 mkdir -p "$build/.bootbin"
-cp "$cache/boot.sh" "$build/.bootbin/boot"
+cp "$cache/boot" "$build/.bootbin"
 echo " done"
 
 if [[ -d "$env_dir" ]]
