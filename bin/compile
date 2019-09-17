@@ -1,38 +1,64 @@
 #!/usr/bin/env bash
+# usage: bin/compile BUILD_DIR CACHE_DIR ENV_DIR
 set -e -o pipefail
+# sed -l basically makes sed replace and buffer through stdin to
+# stdout so you get updates while the command runs and don't wait for
+# the end.
+# e.g. npm install | indent
+# lifted from: https://github.com/heroku/heroku-buildpack-jvm-common
+indent() {
+  # if an arg is given it's a flag indicating we shouldn't indent the
+  # first line, so use :+ to tell SED accordingly if that parameter is
+  # set, otherwise null string for no range selector prefix (it
+  # selects from line 2 onwards and then every 1st line, meaning all
+  # lines)
+  c="${1:+"2,999"} s/^/       /"
+  case $(uname) in
+    Darwin) sed -l "$c";; # mac/bsd sed: -l buffers on line boundaries
+    *)      sed -u "$c";; # unix/gnu sed: -u unbuffered (arbitrary) chunks of data
+  esac
+}
 mkdir -p "$1" "$2"
 build=$(cd "$1/" && pwd)
 cache=$(cd "$2/" && pwd)
 env_dir="$3"
 export BOOT_LOCAL_REPO="$cache/.m2/repository"
 export BOOT_JVM_OPTIONS="-Xmx384m -Xss512k"
+
+#s
+# Load common JVM functionality from https://github.com/heroku/heroku-buildpack-jvm-common
 JVM_COMMON_BUILDPACK="https://codon-buildpacks.s3.amazonaws.com/buildpacks/heroku/jvm-common.tgz"
 mkdir -p /tmp/jvm-common
 curl --silent --location $JVM_COMMON_BUILDPACK | tar xzm -C /tmp/jvm-common --strip-components=1
 . /tmp/jvm-common/bin/util
 . /tmp/jvm-common/bin/java
+
+# Install JDK
 javaVersion=$(detect_java_version ${build})
 echo -n "-----> Installing OpenJDK ${javaVersion}..."
 install_java ${build} ${javaVersion}
 jdk_overlay ${build}
 echo "done"
+#e
 
 if [[ -f "$cache/boot" ]]
-then	
-    echo "-----> Using cached version of boot"	
-else	
-    echo -n "-----> Downloading boot... "	
-    curl -sLo "$cache/boot.sh" https://github.com/boot-clj/boot/releases/download/2.0.0/boot.sh	
+then
+    echo "-----> Using cached version of boot"
+else
+    echo -n "-----> Downloading boot..."
+    curl -sLo "$cache/boot.sh" https://github.com/boot-clj/boot-bin/releases/download/latest/boot.sh
     chmod +x "$cache/boot.sh"
-    mv "$cache/boot.sh" "$cache/boot"	
-    echo " done"	
+    echo " done"
+    echo "-----> Bootstrapping..."
+    "$cache/boot.sh" -C help 2>&1 | grep Retrieving | indent
+    "$cache/boot.sh" -C -V 2>&1 | indent
+    mv "$cache/boot.sh" "$cache/boot"
+    echo "-----> Done bootstrapping"
 fi
-
 echo -n "-----> Copying boot..."
 mkdir -p "$build/.bootbin"
-cp "$cache/boot" "$build/.bootbin"
+cp "$cache/boot" "$build/.bootbin/"
 echo " done"
-
 if [[ -d "$env_dir" ]]
 then
     # load the buildpack config vars
@@ -60,15 +86,21 @@ if [[ -f "$env_dir/AWS_ACCESS_KEY" ]]
   then
     export "AWS_ACCESS_KEY=$(cat "$env_dir/AWS_ACCESS_KEY")"
 fi
-
 if [[ -f "$env_dir/AWS_SECRET_KEY" ]]
   then
     export "AWS_SECRET_KEY=$(cat "$env_dir/AWS_SECRET_KEY")"
 fi
+# By default, there's an expectation that the project's build.boot
+# file defines 'build' task that takes care of all sorts of build-time
+# concerns (e.g. pulling dependencies from repos eagerly). If a more
+# complicated logic is desired at build-time, it can be overriden by
+# specifying BOOTBUILD_CMD var that contains, say, a more complex boot
+# pipeline. For instance:
+# BOOTBUILD_CMD="boot foo -x -- bar --blah -q -- qaz"
 boot_cmd=${BOOTBUILD_CMD:-"boot deploy"}
 echo "-----> Running: $boot_cmd"
 export PATH="$build/.bootbin:$PATH"
-cd $build && $boot_cmd
+(cd $build && $boot_cmd 2>&1 | indent)
 echo -n "-----> Copying jars..."
 cp -R "$cache/.m2" "$build/.m2"
 echo " done"
@@ -90,6 +122,5 @@ case \$limit in
   default_java_opts="-Xmx384m -Xss512k"
   ;;
 esac
-
 export BOOT_JVM_OPTIONS=\${BOOT_JVM_OPTIONS:-"\${default_java_opts} -Dfile.encoding=UTF-8"}
 EOF
