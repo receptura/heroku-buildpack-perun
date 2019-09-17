@@ -34,7 +34,7 @@ then
     echo "-----> Using cached version of boot"
 else
     echo -n "-----> Downloading boot..."
-    curl -sLo "$cache/boot.sh" https://github.com/boot-clj/boot/releases/download/2.0.0/boot.sh
+    curl -sLo "$cache/boot.sh" https://github.com/boot-clj/boot/releases/download/2.5.2/boot.sh
     chmod +x "$cache/boot.sh"
     echo " done"
     echo "-----> Bootstrapping..."
