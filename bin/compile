@@ -95,7 +95,8 @@ fi
 boot_cmd=${BOOTBUILD_CMD:-"boot deploy"}
 echo "-----> Running: $boot_cmd"
 export PATH="$build/.bootbin:$PATH"
-(cd $build && $boot_cmd 2>&1 | indent)
+######(cd $build && $boot_cmd 2>&1 | indent)
+cd $build && $boot_cmd
 
 echo -n "-----> Copying jars..."
 cp -R "$cache/.m2" "$build/.m2"
