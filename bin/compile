@@ -45,7 +45,7 @@ jdk_overlay ${build}
 echo "done"
 #e
 
-if [[ -f "$cache/bootxx" ]]
+if [[ -f "$cache/boot" ]]
 then
     echo "-----> Using cached version of boot"
 else
