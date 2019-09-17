@@ -29,7 +29,7 @@ fi
 
 echo -n "-----> Copying boot..."
 mkdir -p "$build/.bootbin"
-cp "$cache/boot" "$build/.bootbin/"
+cp "$cache/boot.sh" "$build/.bootbin/boot"
 echo " done"
 
 if [[ -d "$env_dir" ]]
