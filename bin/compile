@@ -50,7 +50,7 @@ if [[ -f "$cache/bodddddddot" ]]
 then
     echo "-----> Using cached version of boot"
 else
-    echo -n "-----> Downloading boot..."
+    echo -n "-----> Downloading boot... "
 #    curl -sLo "$cache/boot.sh" https://github.com/boot-clj/boot/releases/download/2.8.3/boot.sh
     curl -sLo "$cache/boot.sh" https://github.com/boot-clj/boot-bin/releases/download/latest/boot.sh
 
